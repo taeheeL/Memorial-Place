@@ -12,10 +12,15 @@
         android:theme="@style/Theme.MemorialPlace"
         tools:targetApi="31">
         <activity
+            android:name=".AddMemorialPlaceActivity"
+            android:exported="false"
+            android:label="ADD MEMORIAL PLACE"
+            android:screenOrientation="portrait"
+            android:theme="@style/CustomNoActionBarTheme" />
+        <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="portrait"
-            >
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
