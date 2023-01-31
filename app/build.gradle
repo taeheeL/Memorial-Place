@@ -55,4 +55,14 @@ dependencies {
     // activity-ktx
     implementation 'androidx.activity:activity-ktx:1.6.1'
 
+    // Dexter
+    implementation 'com.karumi:dexter:6.2.3'
+
+    // Coil
+    implementation 'io.coil-kt:coil:2.2.2'
+
+    // glide
+    implementation 'com.github.bumptech.glide:glide:4.11.0'
+    annotationProcessor 'com.github.bumptech.glide:compiler:4.11.0'
+
 }
