@@ -1,4 +1,4 @@
-package com.example.memorialplace
+package com.example.memorialplace.activities
 
 import android.Manifest
 import android.app.Activity
@@ -18,7 +18,10 @@ import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import coil.load
+import com.example.memorialplace.R
+import com.example.memorialplace.database.DatabaseHandler
 import com.example.memorialplace.databinding.ActivityAddMemorialPlaceBinding
+import com.example.memorialplace.models.MemorialPlaceModel
 import com.example.memorialplace.utill.BindingActivity
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
@@ -50,6 +53,9 @@ class AddMemorialPlaceActivity :
 
     private var cal = Calendar.getInstance()
     private lateinit var dateSetListener: DatePickerDialog.OnDateSetListener
+    private var saveImageToInternalStorage: Uri? = null
+    private var mLatitude: Double = 0.0
+    private var mLongitude: Double = 0.0
 
     private val storagePermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
@@ -82,6 +88,7 @@ class AddMemorialPlaceActivity :
         }
         binding.etDate.setOnClickListener(this)
         binding.tvAddImage.setOnClickListener(this)
+        binding.btnSave.setOnClickListener(this)
 
 
 //        getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -99,6 +106,7 @@ class AddMemorialPlaceActivity :
 
 
     override fun onClick(v: View?) {
+        val toMain = Intent(this, MainActivity::class.java)
         when (v!!.id) {
             R.id.et_date -> {
                 DatePickerDialog(
@@ -122,6 +130,41 @@ class AddMemorialPlaceActivity :
                     }
                 }
                 pictureDialog.show()
+            }
+            R.id.btn_save -> {
+                when {
+                    binding.etTitle.text.isNullOrEmpty() -> {
+                        Toast.makeText(this, "Please enter title", Toast.LENGTH_SHORT).show()
+                    }
+                    binding.etDescription.text.isNullOrEmpty() -> {
+                        Toast.makeText(this, "Please enter description", Toast.LENGTH_SHORT).show()
+                    }
+                    binding.etLocation.text.isNullOrEmpty() -> {
+                        Toast.makeText(this, "Please enter location", Toast.LENGTH_SHORT).show()
+                    }
+                    saveImageToInternalStorage == null -> {
+                        Toast.makeText(this, "Please select an image", Toast.LENGTH_SHORT).show()
+                    }
+                    else -> {
+                        val memorialPlaceModel = MemorialPlaceModel(
+                            0,
+                            binding.etTitle.text.toString(),
+                            saveImageToInternalStorage.toString(),
+                            binding.etDescription.text.toString(),
+                            binding.etDate.text.toString(),
+                            binding.etLocation.text.toString(),
+                            mLatitude, mLongitude
+                        )
+                        val dbHandler = DatabaseHandler(this)
+                        val addMemorialPlace = dbHandler.addHappyPlace(memorialPlaceModel)
+
+                        if(addMemorialPlace > 0){
+                            setResult(Activity.RESULT_OK, toMain)
+                            finish()
+                        }
+                    }
+                }
+
             }
         }
 
@@ -226,8 +269,7 @@ class AddMemorialPlaceActivity :
                             MediaStore.Images.Media.getBitmap(this.contentResolver, contentURI)
 
                         // 이미지를 저장
-                        val saveImageToInternalStorage =
-                            saveImageToInternalStorage(selectedImageBitmap)
+                        saveImageToInternalStorage = saveImageToInternalStorage(selectedImageBitmap)
 
                         Log.e("Saved image: ", "Path :: $saveImageToInternalStorage")
 
@@ -244,8 +286,7 @@ class AddMemorialPlaceActivity :
                 val thumbnail: Bitmap = data!!.extras!!.get("data") as Bitmap // Bitmap from camera
 
                 // 이미지를 저장
-                val saveImageToInternalStorage =
-                    saveImageToInternalStorage(thumbnail)
+                saveImageToInternalStorage = saveImageToInternalStorage(thumbnail)
 
                 Log.e("Saved image: ", "Path :: $saveImageToInternalStorage")
                 binding.ivPlaceImage!!.setImageBitmap(thumbnail) // Set to the imageView.
