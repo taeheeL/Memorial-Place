@@ -25,8 +25,6 @@ class DatabaseHandler(context: Context) :
         private const val KEY_LOCATION = "location"
         private const val KEY_LATITUDE = "latitude"
         private const val KEY_LONGITUDE = "longitude"
-
-
     }
 
     override fun onCreate(db: SQLiteDatabase?) {
@@ -49,7 +47,7 @@ class DatabaseHandler(context: Context) :
         onCreate(db)
     }
 
-    fun addHappyPlace(memorialPlace: MemorialPlaceModel): Long {
+    fun addMemorialPlace(memorialPlace: MemorialPlaceModel): Long {
         val db = this.writableDatabase
 
         val contentValues = ContentValues()
@@ -92,7 +90,7 @@ class DatabaseHandler(context: Context) :
                         cursor.getString(cursor.getColumnIndex(KEY_LOCATION)),
                         cursor.getDouble(cursor.getColumnIndex(KEY_LATITUDE)),
                         cursor.getDouble(cursor.getColumnIndex(KEY_LONGITUDE)),
-                        )
+                    )
                     memorialPlaceList.add(place)
                 } while (cursor.moveToNext())
             }
@@ -103,5 +101,36 @@ class DatabaseHandler(context: Context) :
         }
         return memorialPlaceList
     }
+
+    fun updateMemorialPlace(happyPlace: MemorialPlaceModel): Int {
+        val db = this.writableDatabase
+        val contentValues = ContentValues()
+        contentValues.put(KEY_TITLE, happyPlace.title) // HappyPlaceModelClass TITLE
+        contentValues.put(KEY_IMAGE, happyPlace.image) // HappyPlaceModelClass IMAGE
+        contentValues.put(
+            KEY_DESCRIPTION,
+            happyPlace.description
+        ) // HappyPlaceModelClass DESCRIPTION
+        contentValues.put(KEY_DATE, happyPlace.date) // HappyPlaceModelClass DATE
+        contentValues.put(KEY_LOCATION, happyPlace.location) // HappyPlaceModelClass LOCATION
+        contentValues.put(KEY_LATITUDE, happyPlace.latitude) // HappyPlaceModelClass LATITUDE
+        contentValues.put(KEY_LONGITUDE, happyPlace.longitude) // HappyPlaceModelClass LONGITUDE
+
+        // Updating Row
+        val success =
+            db.update(TABLE_MEMORIAL_PLACE, contentValues, KEY_ID + "=" + happyPlace.id, null)
+        //2nd argument is String containing nullColumnHack
+
+        db.close() // Closing database connection
+        return success
+    }
+
+    fun deleteMemorialPlace(memorialPlace: MemorialPlaceModel) : Int {
+        val db = this.writableDatabase
+        val success = db.delete(TABLE_MEMORIAL_PLACE, KEY_ID + "=" + memorialPlace.id, null)
+        db.close()
+        return success
+    }
+
 
 }
