@@ -1,5 +1,7 @@
 package com.example.memorialplace.models
 
+import java.io.Serializable
+
 data class MemorialPlaceModel(
     val id: Int,
     val title: String,
@@ -9,4 +11,4 @@ data class MemorialPlaceModel(
     val location: String,
     val latitude: Double,
     val longitude: Double
-)
+) : Serializable
