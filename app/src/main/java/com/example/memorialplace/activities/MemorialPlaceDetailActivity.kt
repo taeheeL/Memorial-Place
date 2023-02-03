@@ -25,7 +25,7 @@ class MemorialPlaceDetailActivity :
             supportActionBar!!.setDisplayHomeAsUpEnabled(true)
             supportActionBar!!.title = memorialPlaceDetailModel.title
 
-            binding.toolbarMemorialPlaceDetail.setOnClickListener {
+            binding.toolbarMemorialPlaceDetail.setNavigationOnClickListener {
                 onBackPressed()
             }
 
