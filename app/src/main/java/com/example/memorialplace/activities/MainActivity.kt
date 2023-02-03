@@ -57,22 +57,25 @@ class MainActivity : BindingActivity<ActivityMainBinding>(R.layout.activity_main
         }
         )
 
-        val editSwipeHandler = object : SwipeToEditCallback(this){
+        val editSwipeHandler = object : SwipeToEditCallback(this) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val adaptor = binding.rvMemorialPlacesList.adapter as MemorialPlacesAdaptor
-                adaptor.notifyEditItem(this@MainActivity, viewHolder.adapterPosition, ADD_PLACE_ACTIVITY_REQUEST_CODE)
+                adaptor.notifyEditItem(
+                    resultLauncher,
+                    viewHolder.adapterPosition,
+                    ADD_PLACE_ACTIVITY_REQUEST_CODE
+                )
             }
         }
 
         val editItemTouchHelper = ItemTouchHelper(editSwipeHandler)
         editItemTouchHelper.attachToRecyclerView(binding.rvMemorialPlacesList)
 
-        val deleteSwipeHandler = object : SwipeToDeleteCallback(this){
+        val deleteSwipeHandler = object : SwipeToDeleteCallback(this) {
             override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
                 val adaptor = binding.rvMemorialPlacesList.adapter as MemorialPlacesAdaptor
 
                 adaptor.removeAt(viewHolder.adapterPosition)
-
                 getMemorialListFromLocalDB()
             }
         }
@@ -83,24 +86,21 @@ class MainActivity : BindingActivity<ActivityMainBinding>(R.layout.activity_main
 
     private fun getMemorialListFromLocalDB() {
         val dbHandler = DatabaseHandler(this)
-        val getMemorialPlaceList: ArrayList<MemorialPlaceModel> = dbHandler.getMemorialPlacesList()
+        val getMemorialPlaceList = dbHandler.getMemorialPlacesList()
 
         if (getMemorialPlaceList.size > 0) {
-            for (i in getMemorialPlaceList) {
-                binding.rvMemorialPlacesList.visibility = View.VISIBLE
-                binding.tvNoRecordsAvailable.visibility = View.GONE
-                setupMemorialPlacesRecyclerView(getMemorialPlaceList)
-            }
+            binding.rvMemorialPlacesList.visibility = View.VISIBLE
+            binding.tvNoRecordsAvailable.visibility = View.GONE
+            setupMemorialPlacesRecyclerView(getMemorialPlaceList)
         } else {
             binding.rvMemorialPlacesList.visibility = View.GONE
             binding.tvNoRecordsAvailable.visibility = View.VISIBLE
         }
     }
 
-    companion object{
+    companion object {
         private const val ADD_PLACE_ACTIVITY_REQUEST_CODE = 1
         var EXTRA_PLACE_DETAILS = "extra_place_details"
-
     }
 
 }
