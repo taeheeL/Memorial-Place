@@ -23,6 +23,7 @@ import com.example.memorialplace.database.DatabaseHandler
 import com.example.memorialplace.databinding.ActivityAddMemorialPlaceBinding
 import com.example.memorialplace.models.MemorialPlaceModel
 import com.example.memorialplace.utill.BindingActivity
+import com.example.memorialplace.utill.parcelable
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
@@ -57,6 +58,8 @@ class AddMemorialPlaceActivity :
     private var mLatitude: Double = 0.0
     private var mLongitude: Double = 0.0
 
+    private var mMemorialPlaceDetails: MemorialPlaceModel? = null
+
     private val storagePermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -80,12 +83,35 @@ class AddMemorialPlaceActivity :
 //            this.onBackPressedDispatcher.addCallback(this, callback)
         }
 
+        if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)) {
+            mMemorialPlaceDetails = intent.parcelable(MainActivity.EXTRA_PLACE_DETAILS)
+        }
+
         dateSetListener = DatePickerDialog.OnDateSetListener { _, year, month, dayOfMonth ->
             cal.set(Calendar.YEAR, year)
             cal.set(Calendar.MONTH, month)
             cal.set(Calendar.DAY_OF_MONTH, dayOfMonth)
             updateDateInView()
         }
+        updateDateInView()
+
+        if (mMemorialPlaceDetails != null) {
+            supportActionBar?.title = "Edit Memorial Place"
+
+            binding.etTitle.setText(mMemorialPlaceDetails!!.title)
+            binding.etDescription.setText(mMemorialPlaceDetails!!.description)
+            binding.etDate.setText(mMemorialPlaceDetails!!.date)
+            binding.etLocation.setText(mMemorialPlaceDetails!!.location)
+            mLatitude = mMemorialPlaceDetails!!.latitude
+            mLongitude = mMemorialPlaceDetails!!.longitude
+
+            saveImageToInternalStorage = Uri.parse(mMemorialPlaceDetails!!.image)
+
+            binding.ivPlaceImage.setImageURI(saveImageToInternalStorage)
+
+            binding.btnSave.text = "UPDATE"
+        }
+
         binding.etDate.setOnClickListener(this)
         binding.tvAddImage.setOnClickListener(this)
         binding.btnSave.setOnClickListener(this)
@@ -106,7 +132,6 @@ class AddMemorialPlaceActivity :
 
 
     override fun onClick(v: View?) {
-        val toMain = Intent(this, MainActivity::class.java)
         when (v!!.id) {
             R.id.et_date -> {
                 DatePickerDialog(
@@ -147,7 +172,7 @@ class AddMemorialPlaceActivity :
                     }
                     else -> {
                         val memorialPlaceModel = MemorialPlaceModel(
-                            0,
+                            if (mMemorialPlaceDetails == null) 0 else mMemorialPlaceDetails!!.id,
                             binding.etTitle.text.toString(),
                             saveImageToInternalStorage.toString(),
                             binding.etDescription.text.toString(),
@@ -155,19 +180,29 @@ class AddMemorialPlaceActivity :
                             binding.etLocation.text.toString(),
                             mLatitude, mLongitude
                         )
-                        val dbHandler = DatabaseHandler(this)
-                        val addMemorialPlace = dbHandler.addHappyPlace(memorialPlaceModel)
 
-                        if(addMemorialPlace > 0){
-                            setResult(Activity.RESULT_OK, toMain)
-                            finish()
+                        val dbHandler = DatabaseHandler(this)
+
+                        if (mMemorialPlaceDetails == null) {
+                            val addMemorialPlace = dbHandler.addMemorialPlace(memorialPlaceModel)
+
+                            if (addMemorialPlace > 0) {
+                                setResult(Activity.RESULT_OK)
+                                finish()
+                            }
+                        } else {
+                            val updateMemorialPlace =
+                                dbHandler.updateMemorialPlace(memorialPlaceModel)
+
+                            if (updateMemorialPlace > 0) {
+                                setResult(Activity.RESULT_OK)
+                                finish()
+                            }
                         }
                     }
                 }
-
             }
         }
-
     }
 
     private fun choosePhotoFromGallery() {
