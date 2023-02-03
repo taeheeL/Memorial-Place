@@ -13,6 +13,7 @@ open class MemorialPlacesAdaptor(
     private var list: ArrayList<MemorialPlaceModel>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
     private val inflater by lazy { LayoutInflater.from(context) }
+    private var onClickListener: OnClickListener? = null
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
         val binding = ItemMemorialPlaceBinding.inflate(inflater, parent, false)
@@ -24,6 +25,10 @@ open class MemorialPlacesAdaptor(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         if (holder is MyViewHolder) {
             holder.onBind(list, position)
+
+            holder.itemView.setOnClickListener {
+                onClickListener?.onClick(position, list[position])
+            }
         }
     }
 
@@ -33,6 +38,16 @@ open class MemorialPlacesAdaptor(
             binding.ivPlaceImage.setImageURI(Uri.parse(list[position].image))
             binding.tvTitle.text = list[position].title
             binding.tvDescription.text = list[position].description
+        }
+    }
+
+    fun setOnClickListener(onClickListener: OnClickListener) {
+        this.onClickListener = onClickListener
+    }
+
+    interface OnClickListener {
+        fun onClick(position: Int, model: MemorialPlaceModel) {
+
         }
     }
 

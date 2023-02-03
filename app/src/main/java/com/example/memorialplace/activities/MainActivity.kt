@@ -43,6 +43,14 @@ class MainActivity : BindingActivity<ActivityMainBinding>(R.layout.activity_main
 
         val placesAdaptor = MemorialPlacesAdaptor(this, memorialPlaceList)
         binding.rvMemorialPlacesList.adapter = placesAdaptor
+
+        placesAdaptor.setOnClickListener(object : MemorialPlacesAdaptor.OnClickListener {
+            override fun onClick(position: Int, model: MemorialPlaceModel) {
+                val intent = Intent(this@MainActivity, MemorialPlaceDetailActivity::class.java)
+                startActivity(intent)
+            }
+        }
+        )
     }
 
     private fun getMemorialListFromLocalDB() {
