@@ -9,4 +9,11 @@
     <string name="note_text_no_memorial_places_found_yet">No Memorial places Found Yet. Kindly add one.</string>
 
     <string name="image_content_description">image</string>
+
+    <string name="google_maps_api_key">AIzaSyAmx_FSOmIv4Y4rAjU03XtgGcvZZby-AcI</string>
+
+    <string name="btn_text_view_on_map">VIEW ON MAP</string>
+
+    <string name="add_place_select_current_location_text">SELECT CURRENT LOCATION</string>
+
 </resources>
