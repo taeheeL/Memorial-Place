@@ -1,5 +1,6 @@
 package com.example.memorialplace.activities
 
+import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import com.example.memorialplace.R
@@ -32,6 +33,12 @@ class MemorialPlaceDetailActivity :
             binding.ivPlaceImage.setImageURI(Uri.parse(memorialPlaceDetailModel.image))
             binding.tvDescription.text = memorialPlaceDetailModel.description
             binding.tvLocation.text = memorialPlaceDetailModel.location
+
+            binding.btnViewOnMap.setOnClickListener{
+                val intent = Intent(this, MapActivity::class.java)
+                intent.putExtra(MainActivity.EXTRA_PLACE_DETAILS, memorialPlaceDetailModel)
+                startActivity(intent)
+            }
         }
     }
 }

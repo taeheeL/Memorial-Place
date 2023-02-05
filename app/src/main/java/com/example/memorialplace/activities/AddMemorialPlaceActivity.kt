@@ -1,6 +1,7 @@
 package com.example.memorialplace.activities
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.DatePickerDialog
@@ -9,8 +10,11 @@ import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
 import android.graphics.Bitmap
+import android.location.Location
+import android.location.LocationManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Looper
 import android.provider.MediaStore
 import android.provider.Settings
 import android.util.Log
@@ -23,7 +27,16 @@ import com.example.memorialplace.database.DatabaseHandler
 import com.example.memorialplace.databinding.ActivityAddMemorialPlaceBinding
 import com.example.memorialplace.models.MemorialPlaceModel
 import com.example.memorialplace.utill.BindingActivity
+import com.example.memorialplace.utill.GetAddressFromLatLng
 import com.example.memorialplace.utill.parcelable
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.libraries.places.api.Places
+import com.google.android.libraries.places.api.model.Place
+import com.google.android.libraries.places.widget.Autocomplete
+import com.google.android.libraries.places.widget.model.AutocompleteActivityMode
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
 import com.karumi.dexter.PermissionToken
@@ -60,6 +73,8 @@ class AddMemorialPlaceActivity :
 
     private var mMemorialPlaceDetails: MemorialPlaceModel? = null
 
+    private lateinit var mFusedLocationClient: FusedLocationProviderClient
+
     private val storagePermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
             if (isGranted) {
@@ -81,6 +96,15 @@ class AddMemorialPlaceActivity :
             // TODO deprecated 된 거 고치기
             onBackPressed()
 //            this.onBackPressedDispatcher.addCallback(this, callback)
+        }
+
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        if (!Places.isInitialized()) {
+            Places.initialize(
+                this@AddMemorialPlaceActivity,
+                resources.getString(R.string.google_maps_api_key)
+            )
         }
 
         if (intent.hasExtra(MainActivity.EXTRA_PLACE_DETAILS)) {
@@ -115,6 +139,8 @@ class AddMemorialPlaceActivity :
         binding.etDate.setOnClickListener(this)
         binding.tvAddImage.setOnClickListener(this)
         binding.btnSave.setOnClickListener(this)
+        binding.etLocation.setOnClickListener(this)
+        binding.tvSelectCurrentLocation.setOnClickListener(this)
 
 
 //        getResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
@@ -130,6 +156,50 @@ class AddMemorialPlaceActivity :
 //        }
     }
 
+    private fun isLocationEnabled(): Boolean {
+        val locationManager: LocationManager =
+            getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        return locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+                || locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun requestNewLocationData() {
+        val mLocationRequest = com.google.android.gms.location.LocationRequest()
+        mLocationRequest.priority =
+            com.google.android.gms.location.LocationRequest.PRIORITY_HIGH_ACCURACY
+        mLocationRequest.interval = 1000
+        mLocationRequest.numUpdates = 1
+        mFusedLocationClient.requestLocationUpdates(
+            mLocationRequest,
+            mLocationCallBack,
+            Looper.myLooper()
+        )
+    }
+
+    private val mLocationCallBack = object : LocationCallback() {
+        override fun onLocationResult(locationResult: LocationResult) {
+            val mLastLocation: Location? = locationResult.lastLocation
+            mLatitude = mLastLocation!!.latitude
+            Log.i("Current Latitude", "$mLatitude")
+            mLongitude = mLastLocation!!.longitude
+            Log.i("Current Longitude", "$mLongitude")
+
+            val addressTask =
+                GetAddressFromLatLng(this@AddMemorialPlaceActivity, mLatitude, mLongitude)
+            addressTask.setAddressListener(object : GetAddressFromLatLng.AddressListener {
+                override fun onAddressFound(address: String?) {
+                    binding.etLocation.setText(address)
+                }
+
+                override fun onError() {
+                    Log.e("Get Address:: ", "Something went wrong")
+                }
+
+            })
+            addressTask.getAddress()
+        }
+    }
 
     override fun onClick(v: View?) {
         when (v!!.id) {
@@ -167,9 +237,9 @@ class AddMemorialPlaceActivity :
                     binding.etLocation.text.isNullOrEmpty() -> {
                         Toast.makeText(this, "Please enter location", Toast.LENGTH_SHORT).show()
                     }
-                    saveImageToInternalStorage == null -> {
-                        Toast.makeText(this, "Please select an image", Toast.LENGTH_SHORT).show()
-                    }
+//                    saveImageToInternalStorage == null -> {
+//                        Toast.makeText(this, "Please select an image", Toast.LENGTH_SHORT).show()
+//                    }
                     else -> {
                         val memorialPlaceModel = MemorialPlaceModel(
                             if (mMemorialPlaceDetails == null) 0 else mMemorialPlaceDetails!!.id,
@@ -202,6 +272,57 @@ class AddMemorialPlaceActivity :
                     }
                 }
             }
+
+            R.id.et_location -> {
+                try {
+                    val fields = listOf(
+                        Place.Field.ID, Place.Field.NAME, Place.Field.LAT_LNG,
+                        Place.Field.ADDRESS
+                    )
+                    // Start the autocomplete intent with a unique request code.
+                    val intent =
+                        Autocomplete.IntentBuilder(AutocompleteActivityMode.FULLSCREEN, fields)
+                            .build(this@AddMemorialPlaceActivity)
+                    startActivityForResult(intent, PLACE_AUTOCOMPLETE_REQUEST_CODE)
+                } catch (e: java.lang.Exception) {
+                    e.printStackTrace()
+                }
+            }
+
+            R.id.tv_select_current_location -> {
+                if (!isLocationEnabled()) {
+                    Toast.makeText(
+                        this,
+                        "Your location provider is turned off.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+
+                    val intent = Intent(Settings.ACTION_LOCALE_SETTINGS)
+                    startActivity(intent)
+                } else {
+                    Dexter.withContext(this).withPermissions(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    ).withListener(object : MultiplePermissionsListener {
+                        override fun onPermissionsChecked(report: MultiplePermissionsReport?) {
+                            if (report!!.areAllPermissionsGranted()) {
+                                requestNewLocationData()
+                            }
+                        }
+
+                        override fun onPermissionRationaleShouldBeShown(
+                            permissions: MutableList<PermissionRequest>?,
+                            token: PermissionToken?
+                        ) {
+                            showRationalDialogForPermissions()
+                        }
+
+                    }).onSameThread().check()
+
+
+                }
+
+            }
         }
     }
 
@@ -225,7 +346,7 @@ class AddMemorialPlaceActivity :
                             Intent.ACTION_PICK,
                             MediaStore.Images.Media.EXTERNAL_CONTENT_URI
                         )
-
+                        // TODO 디프리 고치기
                         startActivityForResult(galleryIntent, GALLERY)
                         // END
                     }
@@ -325,6 +446,11 @@ class AddMemorialPlaceActivity :
 
                 Log.e("Saved image: ", "Path :: $saveImageToInternalStorage")
                 binding.ivPlaceImage!!.setImageBitmap(thumbnail) // Set to the imageView.
+            } else if (requestCode == PLACE_AUTOCOMPLETE_REQUEST_CODE) {
+                val place: Place = Autocomplete.getPlaceFromIntent(data!!)
+                binding.etLocation.setText(place.address)
+                mLatitude = place.latLng!!.latitude
+                mLongitude = place.latLng!!.longitude
             }
         } else if (resultCode == Activity.RESULT_CANCELED) {
             Log.e("Cancelled", "Cancelled")
@@ -362,6 +488,7 @@ class AddMemorialPlaceActivity :
         private const val GALLERY = 1
         private const val CAMERA = 2
         private const val IMAGE_DIRECTORY = "MemorialPlaceImages"
+        private const val PLACE_AUTOCOMPLETE_REQUEST_CODE = 3
     }
 
 }
